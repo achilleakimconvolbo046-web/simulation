@@ -1,39 +1,25 @@
-"""
-Simulateur interactif du trafic routier
-Modèle LWR - Schémas Upwind et Lax-Friedrichs
-Licence 3 MSCS - UVBF - Session 6 (2025-2026)
-
-Dépendances :
-    pip install numpy matplotlib
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.widgets as widgets
 from matplotlib.gridspec import GridSpec
 
-# ============================================================
-#  PARAMÈTRES PAR DÉFAUT
-# ============================================================
 DEFAULT = {
-    "vmax"       : 120.0,   # km/h
-    "rho_max"    : 150.0,   # veh/km
-    "L"          : 10.0,    # km
-    "rho0"       : 20.0,    # veh/km
-    "rho_bouchon": 120.0,   # veh/km
-    "T_min"      : 9.0,     # minutes
-    "N"          : 200,     # cellules spatiales
-    "CFL"        : 0.45,    # facteur CFL
-    "scenario"   : 3,       # 1=S1 2=S2 3=S3 4=S4 5=S5 6=S6
-    "scheme"     : "upwind", # upwind ou lax_friedrichs
+    "vmax"       : 120.0,   
+    "rho_max"    : 150.0,   
+    "L"          : 10.0,    
+    "rho0"       : 20.0,    
+    "rho_bouchon": 120.0,  
+    "T_min"      : 9.0,     
+    "N"          : 200,    
+    "CFL"        : 0.45,    
+    "scenario"   : 3,       
+    "scheme"     : "upwind", 
 }
 
 COLORS = ['#185FA5', '#1D9E75', '#BA7517', '#D85A30', '#7F77DD', '#9B59B6']
 LSTYLES = ['-', '--', '-.', ':', (0,(5,2)), (0,(3,1,1,1))]
 
-# ============================================================
-#  MODÈLE LWR
-# ============================================================
+
 def flux(rho, vmax, rho_max):
     return rho * vmax * (1.0 - np.clip(rho, 0, rho_max) / rho_max)
 
@@ -127,15 +113,11 @@ def simuler(p):
     
     return x, snaps, times, dt, Nt
 
-# ============================================================
-#  INTERFACE GRAPHIQUE
-# ============================================================
+
 class Simulateur:
     def __init__(self):
         self.p = dict(DEFAULT)
-        self.text_bottom = None  # Pour stocker le texte du bas
-
-        # --- mise en page ---
+        self.text_bottom = None 
         self.fig = plt.figure(figsize=(15, 9))
         self.fig.patch.set_facecolor('#F0F2F5')
         self.fig.suptitle("Simulateur de trafic routier — Modèle LWR",
@@ -154,7 +136,6 @@ class Simulateur:
         self._build_controls()
         self._run_and_draw()
 
-    # ----------------------------------------------------------
     def _build_controls(self):
         ax = self.ax_ctrl
         pos = ax.get_position()
@@ -170,13 +151,9 @@ class Simulateur:
             gap = h / n_rows
             y = y0 + h - gap * (row + 1) + 0.005
             return self.fig.add_axes([x0 + 0.02, y, w - 0.04, 0.032])
-
-        # -- titre panneau --
         self.fig.text(x0 + w/2, y0 + h + 0.008,
                       "Paramètres", ha='center', va='bottom',
                       fontsize=11, fontweight='bold')
-
-        # -- sliders --
         self.sl_vmax = widgets.Slider(
             slider_axes(0), 'v_max (km/h)', 60, 180,
             valinit=self.p["vmax"], valstep=10)
@@ -192,15 +169,12 @@ class Simulateur:
         self.sl_CFL = widgets.Slider(
             slider_axes(4), 'Facteur CFL', 0.2, 0.95,
             valinit=self.p["CFL"], valstep=0.05)
-
-        # -- sélecteur schéma --
         ax_scheme = self.fig.add_axes([x0 + 0.02, y0 + 0.52, w - 0.04, 0.038])
         self.rad_scheme = widgets.RadioButtons(ax_scheme,
                                                 ('Upwind', 'Lax-Friedrichs'),
                                                 active=0)
         ax_scheme.set_facecolor('#E8ECEF')
 
-        # -- boutons scénarios --
         scenarios = [
             ("S1 : Route peu fréquentée", 1),
             ("S2 : Trafic congestionné", 2),
@@ -220,7 +194,6 @@ class Simulateur:
             b.on_clicked(self._on_scenario)
             self.btns.append(b)
 
-        # -- bouton lancer --
         ax_run = self.fig.add_axes([x0 + 0.02, y0 + 0.02, w - 0.04, 0.045])
         self.btn_run = widgets.Button(ax_run, "▶  LANCER LA SIMULATION",
                                       color='#185FA5', hovercolor='#0C447C')
@@ -229,14 +202,12 @@ class Simulateur:
         self.btn_run.label.set_fontweight('bold')
         self.btn_run.on_clicked(self._on_run)
 
-        # -- légende --
         ax_leg = self.fig.add_axes([x0 + 0.02, y0 + 0.085, w - 0.04, 0.035])
         ax_leg.axis('off')
         ax_leg.text(0.5, 0.5, "Lignes = différents instants",
                     ha='center', va='center', fontsize=8, style='italic',
                     bbox=dict(boxstyle="round", facecolor='#E8ECEF'))
 
-    # ----------------------------------------------------------
     def _on_scenario(self, event):
         for b in self.btns:
             if b.ax == event.inaxes:
@@ -255,7 +226,6 @@ class Simulateur:
         self.p["scheme"]  = "upwind" if self.rad_scheme.value_selected == "Upwind" else "lax_friedrichs"
         self._run_and_draw()
 
-    # ----------------------------------------------------------
     def _run_and_draw(self):
         x, snaps, times, dt, Nt = simuler(self.p)
         vmax    = self.p["vmax"]
@@ -271,7 +241,6 @@ class Simulateur:
             6: "S6: Accident"
         }
         
-        # ---- graphique densité ----
         self.ax_rho.cla()
         for i, (snap, t) in enumerate(zip(snaps, times)):
             self.ax_rho.plot(x, snap,
@@ -292,8 +261,6 @@ class Simulateur:
         self.ax_rho.legend(fontsize=8, loc='upper right')
         self.ax_rho.grid(True, alpha=0.25)
         self.ax_rho.set_facecolor('#FAFAFA')
-        
-        # ---- graphique vitesse ----
         self.ax_v.cla()
         for i, (snap, t) in enumerate(zip(snaps, times)):
             self.ax_v.plot(x, vitesse(snap, vmax, rho_max),
@@ -310,7 +277,6 @@ class Simulateur:
         self.ax_v.grid(True, alpha=0.25)
         self.ax_v.set_facecolor('#FAFAFA')
         
-        # ---- graphique flux ----
         self.ax_flux.cla()
         for i, (snap, t) in enumerate(zip(snaps, times)):
             self.ax_flux.plot(x, flux(snap, vmax, rho_max),
@@ -326,15 +292,12 @@ class Simulateur:
         self.ax_flux.legend(fontsize=7, loc='upper right', ncol=2)
         self.ax_flux.grid(True, alpha=0.25)
         self.ax_flux.set_facecolor('#FAFAFA')
-        
-        # ---- métriques ----
         last = snaps[-1]
         mean_rho = np.mean(last)
         mean_v = vitesse(mean_rho, vmax, rho_max)
         mean_q = flux(mean_rho, vmax, rho_max)
         f_max = vmax * rho_max / 4.0
         
-        # Supprimer l'ancien texte du bas
         if self.text_bottom is not None:
             self.text_bottom.remove()
         
@@ -350,9 +313,6 @@ class Simulateur:
 
         self.fig.canvas.draw_idle()
 
-# ============================================================
-#  POINT D'ENTRÉE
-# ============================================================
 if __name__ == "__main__":
     sim = Simulateur()
     plt.show()
